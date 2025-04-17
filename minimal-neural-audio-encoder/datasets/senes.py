@@ -1,7 +1,8 @@
 import os
 
-from torch.utils.data import Dataset
+import torch
 import torchaudio
+from torch.utils.data import Dataset
 
 class SNESDataset(Dataset):
     """
@@ -21,9 +22,11 @@ class SNESDataset(Dataset):
     def __getitem__(self, index):
         audio_path = self.soundtracks_paths[index]
         audio, sr = torchaudio.load(audio_path)
+        audio = self._sample_one_sec(audio, sr)
         return {
             'audio': audio,
-            'sr': sr
+            'sr': sr,
+            'path': audio_path
         }
 
     def _get_soundtracks_paths(self):
@@ -41,3 +44,10 @@ class SNESDataset(Dataset):
                 soundtracks.append(soundtrack_path)
 
         return soundtracks
+
+    def _sample_one_sec(self, audio:torch.Tensor, sr:int) -> torch.Tensor:
+        _, time = audio.size()
+        min_time = time - sr
+        rand_starting_point = torch.randint(0, min_time, (1,)).tolist()[0]
+        #print(rand_starting_point)
+        return audio[:, rand_starting_point : rand_starting_point+sr]

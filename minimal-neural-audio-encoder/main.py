@@ -7,5 +7,7 @@ snes_dataset = SNESDataset(SNES_ROOT)
 
 # %%
 print(len(snes_dataset))
+print(snes_dataset[0]['path'])
+print(snes_dataset[0]['sr'])
 print(snes_dataset[0]['audio'].size())
 print(snes_dataset[0]['audio'][0][0])
