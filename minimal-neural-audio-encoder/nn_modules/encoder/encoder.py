@@ -71,12 +71,20 @@ class Encoder(nn.Module):
         self.conv_block_3 = ConvBlock(128, 256, 5)
         self.conv_block_4 = ConvBlock(256, 512, 8)
 
+        self.lstm = nn.LSTM(
+            input_size=136, # input will have size 136 
+            hidden_size=136, # I guess that the the LSTM preserves the input size
+            num_layers=2, # this is specified
+        )
+
+        self.conv2 = nn.Conv1d(512, 1024, 7)
+
     def forward(self, x):
         x = self.conv1(x)
-        x = F.elu(x) # 32, 44,094
+        x = F.elu(x) # 32, 44.094
         print("Conv1:", x.shape)
 
-        x:torch.Tensor = self.conv_block_1(x) # 64, 22,046 -> 44.094 -3 do kernel e /2 do stride -> 22,045.5
+        x:torch.Tensor = self.conv_block_1(x) # [2, 32, 44094] -> 44.094 -3 do kernel e /2 do stride -> 22,045.5
         print("Block1:", x.shape)
 
         x:torch.Tensor = self.conv_block_2(x)
@@ -87,5 +95,11 @@ class Encoder(nn.Module):
 
         x:torch.Tensor = self.conv_block_4(x)
         print("Block4:", x.shape)
+
+        x, (_, _) = self.lstm(x) # out, (h, c)
+        print("LSTM:", x.shape)
+
+        x = self.conv2(x)
+        print("Conv 2:", x.shape)
 
         print(x.size())

@@ -19,13 +19,9 @@ print()
 # %%
 snes_loader = DataLoader(snes_dataset, 2)
 batch = next(iter(snes_loader))
-print(batch)
+print('Batch Audio Shape:', batch['audio'].shape)
 
 #%%
-audio_batch = batch['audio']
-print("Audio Batch Shape:", audio_batch.shape)\
-
-out = Encoder()(audio_batch)
-print()
+out = Encoder()(batch['audio']) 
 
 # %%
