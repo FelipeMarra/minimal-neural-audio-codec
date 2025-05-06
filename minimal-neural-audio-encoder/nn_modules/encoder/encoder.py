@@ -72,34 +72,42 @@ class Encoder(nn.Module):
         self.conv_block_4 = ConvBlock(256, 512, 8)
 
         self.lstm = nn.LSTM(
-            input_size=136, # input will have size 136 
-            hidden_size=136, # I guess that the the LSTM preserves the input size
-            num_layers=2, # this is specified
+            input_size=1, # we'll go over our vallues one by one for each batch, for each channel
+            hidden_size=64, # random choice, since they dont specify it
+            proj_size=1, # we need to go back to a single number 
+            num_layers=2,
+            batch_first=True # we pass data in batch, seq, feature format
         )
 
         self.conv2 = nn.Conv1d(512, 1024, 7)
 
     def forward(self, x):
         x = self.conv1(x)
-        x = F.elu(x) # 32, 44.094
+        x = F.elu(x) # [2, 32, 44094]
         print("Conv1:", x.shape)
 
-        x:torch.Tensor = self.conv_block_1(x) # [2, 32, 44094] -> 44.094 -3 do kernel e /2 do stride -> 22,045.5
+        x:torch.Tensor = self.conv_block_1(x) # [2, 64, 22046] -> 44.094 -3 do kernel e /2 do stride -> 22,045.5
         print("Block1:", x.shape)
 
-        x:torch.Tensor = self.conv_block_2(x)
+        x:torch.Tensor = self.conv_block_2(x) # [2, 128, 5510]
         print("Block2:", x.shape)
 
-        x:torch.Tensor = self.conv_block_3(x)
+        x:torch.Tensor = self.conv_block_3(x) # [2, 256, 1101]
         print("Block3:", x.shape)
 
-        x:torch.Tensor = self.conv_block_4(x)
+        x:torch.Tensor = self.conv_block_4(x) # [2, 512, 136]
         print("Block4:", x.shape)
+
+        B, C, S = x.shape # batch, channel, sequence -> there is a seq for each batch for each channel
+        x = x.reshape(B*C, S, 1) # batch, seq, feature -> we need to treat every channel as a batch to have the seq len in the second dim and the feature in the third
+        print("Reshape:", x.shape)
 
         x, (_, _) = self.lstm(x) # out, (h, c)
         print("LSTM:", x.shape)
 
+        x = x.reshape(B, C, S) # restore shape to batch, channel, sequence
+
         x = self.conv2(x)
         print("Conv 2:", x.shape)
 
-        print(x.size())
+        print(x.shape)
