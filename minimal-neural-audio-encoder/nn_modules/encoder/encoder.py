@@ -40,7 +40,6 @@ class ResidualUnit(nn.Module):
         return out
 
 class ConvBlock(nn.Module):
-    # TODO no activation?
     def __init__(self, in_channels:int, out_channels:int, stride:int):
         super(ConvBlock, self).__init__()
 
@@ -49,7 +48,7 @@ class ConvBlock(nn.Module):
 
     def forward(self, x):
         x = self.res_unit(x)
-        x = self.downsample(x)
+        x = self.downsample(x) # TODO no activation?
 
         return x
 
@@ -82,30 +81,20 @@ class Encoder(nn.Module):
     def forward(self, x):
         x = self.conv1(x)
         x = F.elu(x) # [2, 32, 44094]
-        print("Conv1:", x.shape)
 
         x:torch.Tensor = self.conv_block_1(x) # [2, 64, 22046] -> 44.094 -3 do kernel e /2 do stride -> 22,045.5
-        print("Block1:", x.shape)
-
         x:torch.Tensor = self.conv_block_2(x) # [2, 128, 5510]
-        print("Block2:", x.shape)
-
         x:torch.Tensor = self.conv_block_3(x) # [2, 256, 1101]
-        print("Block3:", x.shape)
 
         x:torch.Tensor = self.conv_block_4(x) # [2, 512, 136]
-        print("Block4:", x.shape)
 
-        B, C, S = x.shape # batch, channel, sequence -> there is a seq for each batch for each channel
-        x = x.reshape(B*C, S, 1) # batch, seq, feature -> we need to treat every channel as a batch to have the seq len in the second dim and the feature in the third
-        print("Reshape:", x.shape)
+        B, C, S = x.shape # (batch, channel, sequence) -> there is a seq for each batch for each channel
+        x = x.reshape(B*C, S, 1) # (batch, seq, feature) -> we need to treat every channel as a batch to have the seq len in the second dim and the feature in the third
 
         x, (_, _) = self.lstm(x) # out, (h, c) [1024, 136, 1]
-        print("LSTM:", x.shape)
 
-        x = x.reshape(B, C, S) # restore shape to batch, channel, sequence
+        x = x.reshape(B, C, S) # restore shape to (batch, channel, sequence)
 
         x = self.conv2(x) # [2, 1024, 130]
-        print("Conv 2:", x.shape)
 
         print(x.shape)
