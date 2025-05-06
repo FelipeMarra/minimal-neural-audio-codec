@@ -85,7 +85,6 @@ class Encoder(nn.Module):
         x:torch.Tensor = self.conv_block_1(x) # [2, 64, 22046] -> 44.094 -3 do kernel e /2 do stride -> 22,045.5
         x:torch.Tensor = self.conv_block_2(x) # [2, 128, 5510]
         x:torch.Tensor = self.conv_block_3(x) # [2, 256, 1101]
-
         x:torch.Tensor = self.conv_block_4(x) # [2, 512, 136]
 
         B, C, S = x.shape # (batch, channel, sequence) -> there is a seq for each batch for each channel
