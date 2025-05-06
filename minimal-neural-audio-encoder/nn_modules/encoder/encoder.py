@@ -58,14 +58,12 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
 
         # EnCodec has 150 lattent steps per second for 48kHz
-        # Our audios are at 44.1 kHz, but I think 150 is a fine number
-        # So we need to cover 294 data points per step to get 150 lattent steps?
-        # Looks like we will get 136 lattent steps for 44.1 kHz
+        # We will get 130 lattent steps for 44.1 kHz
 
         # They say they use 32 channels and kernel of size 7
         self.conv1 = nn.Conv1d(2, 32, 7)
 
-        # Number of samples is doubled whenever downsample occur
+        # Number of channels is doubled whenever downsample occurs
         self.conv_block_1 = ConvBlock(32, 64, 2) 
         self.conv_block_2 = ConvBlock(64, 128, 4)
         self.conv_block_3 = ConvBlock(128, 256, 5)
@@ -76,7 +74,7 @@ class Encoder(nn.Module):
             hidden_size=64, # random choice, since they dont specify it
             proj_size=1, # we need to go back to a single number 
             num_layers=2,
-            batch_first=True # we pass data in batch, seq, feature format
+            batch_first=True # we pass data in (batch, seq, feature) format
         )
 
         self.conv2 = nn.Conv1d(512, 1024, 7)
@@ -102,12 +100,12 @@ class Encoder(nn.Module):
         x = x.reshape(B*C, S, 1) # batch, seq, feature -> we need to treat every channel as a batch to have the seq len in the second dim and the feature in the third
         print("Reshape:", x.shape)
 
-        x, (_, _) = self.lstm(x) # out, (h, c)
+        x, (_, _) = self.lstm(x) # out, (h, c) [1024, 136, 1]
         print("LSTM:", x.shape)
 
         x = x.reshape(B, C, S) # restore shape to batch, channel, sequence
 
-        x = self.conv2(x)
+        x = self.conv2(x) # [2, 1024, 130]
         print("Conv 2:", x.shape)
 
         print(x.shape)

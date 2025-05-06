@@ -36,9 +36,6 @@ class SNESDataset(Dataset):
             game_folder_path = os.path.join(self.root, game_folder)
             soundtrack_folder_path = os.path.join(game_folder_path, 'soundtracks')
 
-            if not os.path.exists(soundtrack_folder_path): # TODO: remove after complete downloading the dataset
-                continue
-
             for soundtrack in os.listdir(soundtrack_folder_path):
                 soundtrack_path = os.path.join(soundtrack_folder_path, soundtrack)
                 soundtracks.append(soundtrack_path)
