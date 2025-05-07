@@ -79,6 +79,7 @@ class Encoder(nn.Module):
         self.conv2 = nn.Conv1d(512, 1024, 7)
 
     def forward(self, x):
+        # x is [2, 32, 44100]
         x = self.conv1(x)
         x = F.elu(x) # [2, 32, 44094]
 
@@ -97,3 +98,5 @@ class Encoder(nn.Module):
         x = self.conv2(x) # [2, 1024, 130]
 
         print(x.shape)
+
+        return x

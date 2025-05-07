@@ -2,6 +2,7 @@
 from torch.utils.data import DataLoader
 from datasets.senes import SNESDataset
 from nn_modules.encoder.encoder import Encoder
+from nn_modules.decoder.decoder import Decoder
 
 SNES_ROOT = "/media/felipe/32740855-6a5b-4166-b047-c8177bb37be1/snes-back/vmdb/nintendo-snes-spc"
 
@@ -23,5 +24,6 @@ print('Batch Audio Shape:', batch['audio'].shape)
 
 #%%
 out = Encoder()(batch['audio']) 
+out = Decoder()(out)
 
 # %%
