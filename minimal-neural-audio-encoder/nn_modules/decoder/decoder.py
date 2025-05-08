@@ -79,31 +79,19 @@ class Decoder(nn.Module):
         # x is shape [2, 1024, 130]
         x = self.conv1(x) # [2, 512, 136]
         x = F.elu(x)
-        print(f"Dec Conv1: {x.shape}")
 
         B, C, S = x.shape # (batch, channel, sequence) -> there is a seq for each batch for each channel
         x = x.reshape(B*C, S, 1) # (batch, seq, feature) -> we need to treat every channel as a batch to have the seq len in the second dim and the feature in the third
-        print(f"Dec Reshape to LSTM: {x.shape}") # [1024, 136, 1]
 
         x, (_, _) = self.lstm(x) # out, (h, c) [1024, 136, 1]
-        print(f"Dec LSTM: {x.shape}")
 
-        x = x.reshape(B, C, S) # restore shape to (batch, channel, sequence)
-        print(f"Dec Reshape back from LSTM: {x.shape}") # [2, 512, 136]
+        x = x.reshape(B, C, S) # restore shape to (batch, channel, sequence) [2, 512, 136]
 
         x:torch.Tensor = self.conv_block_1(x) # [2, 256, 274]
-        print(f"Dec Block 1: {x.shape}")
-
         x:torch.Tensor = self.conv_block_2(x) # [2, 128, 1100]
-        print(f"Dec Block 2: {x.shape}")
-
         x:torch.Tensor = self.conv_block_3(x) # [2, 64, 5505]
-        print(f"Dec Block 3: {x.shape}")
-
         x:torch.Tensor = self.conv_block_4(x) # [2, 32, 44048]
-        print(f"Dec Block 4: {x.shape}")
 
         x = self.conv2(x) # [2, 2, 44054]
-        print(f"Dec Conv 2: {x.shape}")
 
         return x
