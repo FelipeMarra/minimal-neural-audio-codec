@@ -24,6 +24,11 @@ print('Batch Audio Shape:', batch['audio'].shape)
 
 #%%
 out = Encoder()(batch['audio']) 
-out = Decoder()(out)
+#out = Decoder()(out)
 
 # %%
+#TODO
+# We further split the input into chunks of 1 seconds, with an overlap of 10 ms to avoid clicks, and normalize each
+# chunk before feeding it to the model, applying the inverse operation on the output of the decoder, adding a
+# negligible bandwidth overhead to transmit the scale.
+# https://discuss.pytorch.org/t/how-to-normalize-audio-data-in-pytorch/187709
