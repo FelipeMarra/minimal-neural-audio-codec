@@ -40,16 +40,16 @@ class ResidualUnit(nn.Module):
 
         self.out_channels = out_channels
 
-        self.conv1 = Conv1dLN(in_t, in_channels, out_channels, kernel, padding=padding)
+        self.conv1 = Conv1dLN(in_t, in_channels, out_channels, kernel, padding=1)
 
-        conv2_padding = self.get_res_unit_conv2_padding(in_t, kernel)
-        self.conv2 = Conv1dLN(self.conv1.out_t, out_channels, out_channels, kernel, padding=conv2_padding)
+        #conv2_padding = self.get_res_unit_conv2_padding(in_t, kernel) TODO: ignoring because its getting too complicated
+        self.conv2 = Conv1dLN(self.conv1.out_t, out_channels, out_channels, kernel, padding=1)
 
         self.out_t = self.conv2.out_t
 
         self.shortcut = nn.Sequential()
         if in_channels != out_channels:
-            self.shortcut = Conv1dLN(in_t, in_channels, out_channels, kernel, padding=padding, bias=False)
+            self.shortcut = Conv1dLN(in_t, in_channels, out_channels, kernel, padding=1, bias=False)
 
     def get_res_unit_conv2_padding(self, in_t, kernel, stride=1):
         """
@@ -65,7 +65,7 @@ class ResidualUnit(nn.Module):
 
         return ((in_t-1)*stride+kernel-in_t)//2
 
-    def forward(self, x):
+    def forward(self, x) -> torch.Tensor:
         out = self.conv1(x)
         out = nn.ELU()(out)
 
@@ -96,7 +96,7 @@ class ConvBlock(nn.Module):
 
         self.out_t = self.downsample.out_t
 
-    def forward(self, x):
+    def forward(self, x) -> torch.Tensor:
         x = self.res_unit(x)
         x = self.downsample(x)
         x = nn.ELU()(x)
@@ -145,9 +145,14 @@ class Encoder(nn.Module):
             stride = 8
         )
 
+        # TODO Looks like somehow their lstm is like LSTM(1024, 1024, num_layers=2)
+        # My logic is that we have a batch of dimention B, C channels and sequence of size S
+        # We need the LSTM to go over every sequence to model time, so it would go over the
+        # last dim of a tensor of shape (B*C, S, 1) since the LSTM expects (batch, seq, feature)
+        # when batch_first is true
         self.lstm = nn.LSTM(
-            input_size=1, # we'll go over our vallues one by one for each batch, for each channel
-            hidden_size=64, # random choice, since they dont specify it
+            input_size=1,
+            hidden_size=64,
             proj_size=1, # we need to go back to a single number 
             num_layers=2,
             batch_first=True # we pass data in (batch, seq, feature) format
@@ -164,14 +169,19 @@ class Encoder(nn.Module):
         )
 
     def forward(self, x):
-        # x is [2, 32, 44100]
+        # x is [2, 2, 44100]
         x = self.conv1(x)
         x = nn.ELU()(x) # [2, 32, 44100]
+        print(f"Encoder Conv 1 {x.shape}")
 
         x:torch.Tensor = self.conv_block_1(x) # [2, 64, 22050]
+        print(f"Encoder Block 1 {x.shape}")
         x:torch.Tensor = self.conv_block_2(x) # [2, 128, 5513]
+        print(f"Encoder Block 2 {x.shape}")
         x:torch.Tensor = self.conv_block_3(x) # [2, 256, 1103]
+        print(f"Encoder Block 3 {x.shape}")
         x:torch.Tensor = self.conv_block_4(x) # [2, 512, 138]
+        print(f"Encoder Block 4 {x.shape}")
 
         # (batch, channel, sequence) -> there is a seq for each batch for each channel
         B, C, S = x.shape
@@ -183,7 +193,9 @@ class Encoder(nn.Module):
         x, (_, _) = self.lstm(x) # out, (h, c) [1024, 138, 1]
 
         x = x.reshape(B, C, S) # restore shape to (batch, channel, sequence)
+        print(f"Encoder LSTM {x.shape}")
 
         x = self.conv2(x) # [2, 1024, 138]
+        print(f"Encoder Conv 2 {x.shape}")
 
         return x

@@ -23,8 +23,9 @@ batch = next(iter(snes_loader))
 print('Batch Audio Shape:', batch['audio'].shape)
 
 #%%
-out = Encoder()(batch['audio']) 
-#out = Decoder()(out)
+out = Encoder()(batch['audio'])
+B, C, S = out.shape
+out = Decoder(in_t=S, in_c=C)(out)
 
 # %%
 #TODO
