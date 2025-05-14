@@ -1,8 +1,7 @@
 #%%
 from torch.utils.data import DataLoader
 from datasets.senes import SNESDataset
-from nn_modules.encoder.encoder import Encoder
-from nn_modules.decoder.decoder import Decoder
+from nn_modules.neural_audio_codec import NeuralAudioCodec
 
 SNES_ROOT = "/media/felipe/32740855-6a5b-4166-b047-c8177bb37be1/snes-back/vmdb/nintendo-snes-spc"
 
@@ -23,9 +22,8 @@ batch = next(iter(snes_loader))
 print('Batch Audio Shape:', batch['audio'].shape)
 
 #%%
-out = Encoder()(batch['audio'])
-B, C, S = out.shape
-out = Decoder(in_t=S, in_c=C)(out)
+out = NeuralAudioCodec(verbose=True)(batch['audio'])
+print(f"####### {out.shape}")
 
 # %%
 #TODO
