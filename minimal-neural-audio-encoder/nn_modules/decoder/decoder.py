@@ -104,7 +104,7 @@ class ConvTransposeBlock(nn.Module):
         return x
 
 class Decoder(nn.Module):
-    def __init__(self, in_t:int, in_c:int):
+    def __init__(self, in_t:int, in_c:int, verbose=False):
         """
         Args:
             in_t: dimention of the last dim, that is, the time dim. Also known as the sample rate.
@@ -114,6 +114,7 @@ class Decoder(nn.Module):
 
         kernel = 7
         padding = get_padding(kernel)
+        self.verbose = verbose
 
         # final 1D convolution layer with a kernel size of 7 and D output channels
         # What value should I use for D? I'll double the prevoius out channels, since it has been the pattern so far
@@ -175,10 +176,10 @@ class Decoder(nn.Module):
         )
 
     def forward(self, x):
-        # x is [2, 1024, 138]
+        # x is [2, 1024, 137]
         x = self.conv2(x)
-        x = nn.ELU()(x) # [2, 512, 138]
-        print(f"Decoder Conv 2 {x.shape}")
+        x = nn.ELU()(x) # [2, 512, 137]
+        if self.verbose: print(f"Decoder Conv 2 {x.shape}")
 
         # (batch, channel, sequence) -> there is a seq for each batch for each channel
         B, C, S = x.shape
@@ -190,18 +191,18 @@ class Decoder(nn.Module):
         x, (_, _) = self.lstm(x) # out, (h, c) [512, 138, 1]
 
         x = x.reshape(B, C, S) # restore shape to (batch, channel, sequence)
-        print(f"Decoder LSTM {x.shape}")
+        if self.verbose: print(f"Decoder LSTM {x.shape}")
 
-        x:torch.Tensor = self.conv_block_4(x) # [2, 256, 138]
-        print(f"Decoder Block 4 {x.shape}")
-        x:torch.Tensor = self.conv_block_3(x) # [2, 128, 1103]
-        print(f"Decoder Block 3 {x.shape}")
-        x:torch.Tensor = self.conv_block_2(x) # [2, 64, 5513]
-        print(f"Decoder Block 3 {x.shape}")
-        x:torch.Tensor = self.conv_block_1(x) # [2, 32, 22050]
-        print(f"Decoder Block 1 {x.shape}")
+        x:torch.Tensor = self.conv_block_4(x) # [2, 256, 1096]
+        if self.verbose: print(f"Decoder Block 4 {x.shape}")
+        x:torch.Tensor = self.conv_block_3(x) # [2, 128, 5479]
+        if self.verbose: print(f"Decoder Block 3 {x.shape}")
+        x:torch.Tensor = self.conv_block_2(x) # [2, 64, 21916]
+        if self.verbose: print(f"Decoder Block 3 {x.shape}")
+        x:torch.Tensor = self.conv_block_1(x) # [2, 32, 43832]
+        if self.verbose: print(f"Decoder Block 1 {x.shape}")
 
-        x = self.conv1(x) # [2, 2, 44100]
-        print(f"Decoder Conv 1 {x.shape}")
+        x = self.conv1(x) # [2, 2, 43832]
+        if self.verbose: print(f"Decoder Conv 1 {x.shape}")
 
         return x

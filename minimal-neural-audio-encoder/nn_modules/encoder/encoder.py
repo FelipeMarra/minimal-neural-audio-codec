@@ -104,7 +104,7 @@ class ConvBlock(nn.Module):
         return x
 
 class Encoder(nn.Module):
-    def __init__(self, in_t:int=44100):
+    def __init__(self, in_t:int=44100, verbose:bool=False):
         """
         Args:
             in_t: dimention of the last dim, that is, the time dim. Also known as the sample rate.
@@ -114,6 +114,7 @@ class Encoder(nn.Module):
         kernel = 7
         out_channels = 32
         padding = get_padding(kernel)
+        self.verbose = verbose
 
         self.conv1 = Conv1dLN(in_t, 2, out_channels, kernel, padding=padding)
 
@@ -172,16 +173,16 @@ class Encoder(nn.Module):
         # x is [2, 2, 44100]
         x = self.conv1(x)
         x = nn.ELU()(x) # [2, 32, 44100]
-        print(f"Encoder Conv 1 {x.shape}")
+        if self.verbose: print(f"Encoder Conv 1 {x.shape}")
 
         x:torch.Tensor = self.conv_block_1(x) # [2, 64, 22050]
-        print(f"Encoder Block 1 {x.shape}")
-        x:torch.Tensor = self.conv_block_2(x) # [2, 128, 5513]
-        print(f"Encoder Block 2 {x.shape}")
-        x:torch.Tensor = self.conv_block_3(x) # [2, 256, 1103]
-        print(f"Encoder Block 3 {x.shape}")
-        x:torch.Tensor = self.conv_block_4(x) # [2, 512, 138]
-        print(f"Encoder Block 4 {x.shape}")
+        if self.verbose: print(f"Encoder Block 1 {x.shape}")
+        x:torch.Tensor = self.conv_block_2(x) # [2, 128, 5512]
+        if self.verbose: print(f"Encoder Block 2 {x.shape}")
+        x:torch.Tensor = self.conv_block_3(x) # [2, 256, 1102]
+        if self.verbose: print(f"Encoder Block 3 {x.shape}")
+        x:torch.Tensor = self.conv_block_4(x) # [2, 512, 137]
+        if self.verbose: print(f"Encoder Block 4 {x.shape}")
 
         # (batch, channel, sequence) -> there is a seq for each batch for each channel
         B, C, S = x.shape
@@ -190,12 +191,12 @@ class Encoder(nn.Module):
         # to have the seq len in the second dim and the feature in the third
         x = x.reshape(B*C, S, 1) 
 
-        x, (_, _) = self.lstm(x) # out, (h, c) [1024, 138, 1]
+        x, (_, _) = self.lstm(x) # out, (h, c) [1024, 137, 1]
 
         x = x.reshape(B, C, S) # restore shape to (batch, channel, sequence)
-        print(f"Encoder LSTM {x.shape}")
+        if self.verbose: print(f"Encoder LSTM {x.shape}")
 
-        x = self.conv2(x) # [2, 1024, 138]
-        print(f"Encoder Conv 2 {x.shape}")
+        x = self.conv2(x) # [2, 1024, 137]
+        if self.verbose: print(f"Encoder Conv 2 {x.shape}")
 
         return x
