@@ -1,33 +1,39 @@
-#%%
-from torch.utils.data import DataLoader
+import hydra
+from hydra.core.config_store import ConfigStore
+from config import NeuralAudioCodecConfig
+
 from datasets.senes import SNESDataset
-from nn_modules.neural_audio_codec import NeuralAudioCodec
+from nn_modules import NeuralAudioCodec
+from train import Trainer
 
-SNES_ROOT = "/media/felipe/32740855-6a5b-4166-b047-c8177bb37be1/snes-back/vmdb/nintendo-snes-spc"
+# Config store so that Hydra will load our config at minimal-neural-audio-encoder/conf/ as a NeuralAudioCodecConfig class
+config_store = ConfigStore.instance()
+config_store.store(name="neural_audio_codec_config", node=NeuralAudioCodecConfig)
 
-#%%
-snes_dataset = SNESDataset(SNES_ROOT)
+@hydra.main(config_path="conf", config_name="config", version_base="1.1")
+def main(cfg: NeuralAudioCodecConfig):
+    snes_dataset = SNESDataset(cfg.data.dataset.path)
+    model = NeuralAudioCodec(verbose=cfg.model.verbose)
 
-# %%
-print(len(snes_dataset))
-print(snes_dataset[0]['path'])
-print(snes_dataset[0]['sr'])
-print(snes_dataset[0]['audio'].shape)
-print(snes_dataset[0]['audio'][0][0])
-print()
+    trainer = Trainer(model, snes_dataset, None, None, cfg)
+    trainer.train()
 
-# %%
-snes_loader = DataLoader(snes_dataset, 2)
-batch = next(iter(snes_loader))
-print('Batch Audio Shape:', batch['audio'].shape)
-
-#%%
-out = NeuralAudioCodec(verbose=True)(batch['audio'])
-print(f"####### {out.shape}")
+if __name__ == "__main__":
+    main()
 
 # %%
+#TODO add config manager like ominiconfig or hydra
+
 #TODO
 # We further split the input into chunks of 1 seconds, with an overlap of 10 ms to avoid clicks, and normalize each
 # chunk before feeding it to the model, applying the inverse operation on the output of the decoder, adding a
 # negligible bandwidth overhead to transmit the scale.
 # https://discuss.pytorch.org/t/how-to-normalize-audio-data-in-pytorch/187709
+
+#TODO Splits
+
+#TODO Loader that goes over 100% of the audios
+# -> load every 1sec as an example
+# -> chose fixed amout of time for every music? Like load 30s per music
+
+#TODO Tensorboard

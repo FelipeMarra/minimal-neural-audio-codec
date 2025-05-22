@@ -19,7 +19,7 @@ class Conv1dLN(nn.Module):
 
         self.conv = nn.Conv1d(in_channels, out_channels, kernel, stride, padding, bias=bias)
         self.out_t = get_conv_out(in_t, kernel, stride, padding)
-        self.ln1 = nn.LayerNorm((out_channels, self.out_t))
+        self.ln1 = nn.LayerNorm((out_channels, self.out_t)) # type: ignore
 
     def forward(self, x:torch.Tensor) -> torch.Tensor:
         x = self.conv(x)
@@ -169,7 +169,7 @@ class Encoder(nn.Module):
             padding=padding
         )
 
-    def forward(self, x):
+    def forward(self, x): # type: ignore
         # x is [2, 2, 44100]
         x = self.conv1(x)
         x = nn.ELU()(x) # [2, 32, 44100]
@@ -197,6 +197,6 @@ class Encoder(nn.Module):
         if self.verbose: print(f"Encoder LSTM {x.shape}")
 
         x = self.conv2(x) # [2, 1024, 137]
-        if self.verbose: print(f"Encoder Conv 2 {x.shape}")
+        if self.verbose: print(f"Encoder Conv 2 {x.shape}\n")
 
         return x

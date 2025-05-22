@@ -1,0 +1,19 @@
+model:
+  verbose: false
+
+data:
+  dataset:
+    path: /media/felipe/32740855-6a5b-4166-b047-c8177bb37be1/snes-back/vmdb/nintendo-snes-spc
+
+  data_loader:
+    batch_size: 2
+    num_workers: 2
+
+train:
+  epoch:
+    num_epochs: 100
+    iters_per_epoch: 2000
+
+  optim:
+    lr: 1e-4
+    weight_decay: 1e-2

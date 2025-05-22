@@ -19,7 +19,7 @@ class ConvTranspose1dLN(nn.Module):
 
         self.conv = nn.ConvTranspose1d(in_channels, out_channels, kernel, stride, padding, bias=bias)
         self.out_t = get_conv_transpose_out(in_t, kernel, stride, padding)
-        self.ln1 = nn.LayerNorm((out_channels, self.out_t))
+        self.ln1 = nn.LayerNorm((out_channels, self.out_t)) # type: ignore
 
     def forward(self, x:torch.Tensor) -> torch.Tensor:
         x = self.conv(x)
@@ -77,7 +77,7 @@ class ResidualTransposeUnit(nn.Module):
         return out
 
 class ConvTransposeBlock(nn.Module):
-    def __init__(self, in_t:int, in_channels:int, out_channels:int, stride:int):
+    def __init__(self, in_t:int, in_channels:int, out_channels:int, stride:int, kernel:int=-1, padding:int=-1):
         """
         Args:
             in_channels: number of input channels in the first layer
@@ -88,17 +88,17 @@ class ConvTransposeBlock(nn.Module):
         super(ConvTransposeBlock, self).__init__()
 
         self.out_channels = out_channels
-        kernel = stride*2 # kernel size is twice the stride
-        padding = get_padding(kernel, stride)
+        kernel = stride*2 if kernel < 0 else kernel # kernel size is twice the stride
+        self.padding = get_padding(kernel, stride) if padding < 0 else padding
 
-        self.res_unit = ResidualTransposeUnit(in_t, in_channels, out_channels, padding=padding)
-        self.downsample = ConvTranspose1dLN(self.res_unit.out_t, out_channels, out_channels, kernel, stride, padding, bias=False)
+        self.res_unit = ResidualTransposeUnit(in_t, in_channels, out_channels, padding=self.padding)
+        self.upsample = ConvTranspose1dLN(self.res_unit.out_t, out_channels, out_channels, kernel, stride, 1, bias=False)
 
-        self.out_t = self.downsample.out_t
+        self.out_t = self.upsample.out_t
 
     def forward(self, x):
         x = self.res_unit(x)
-        x = self.downsample(x)
+        x = self.upsample(x)
         x = nn.ELU()(x)
 
         return x
@@ -150,7 +150,9 @@ class Decoder(nn.Module):
             in_t = self.conv_block_4.out_t,
             in_channels = self.conv_block_4.out_channels, # 256
             out_channels = self.conv_block_4.out_channels // 2, # 128
-            stride = 5
+            stride = 5,
+            padding = 3, # Forcing to reflect encoder dim
+            kernel = 9 # Forcing to reflect encoder dim
         )
 
         self.conv_block_2 = ConvTransposeBlock(
@@ -175,7 +177,7 @@ class Decoder(nn.Module):
             padding=padding
         )
 
-    def forward(self, x):
+    def forward(self, x): # type: ignore
         # x is [2, 1024, 137]
         x = self.conv2(x)
         x = nn.ELU()(x) # [2, 512, 137]
@@ -188,21 +190,21 @@ class Decoder(nn.Module):
         # to have the seq len in the second dim and the feature in the third
         x = x.reshape(B*C, S, 1) 
 
-        x, (_, _) = self.lstm(x) # out, (h, c) [512, 138, 1]
+        x, (_, _) = self.lstm(x) # out, (h, c) [512, 137, 1]
 
         x = x.reshape(B, C, S) # restore shape to (batch, channel, sequence)
         if self.verbose: print(f"Decoder LSTM {x.shape}")
 
         x:torch.Tensor = self.conv_block_4(x) # [2, 256, 1096]
-        if self.verbose: print(f"Decoder Block 4 {x.shape}")
+        if self.verbose: print(f"Decoder Block 4 {x.shape}, padding {self.conv_block_4.padding}")
         x:torch.Tensor = self.conv_block_3(x) # [2, 128, 5479]
-        if self.verbose: print(f"Decoder Block 3 {x.shape}")
+        if self.verbose: print(f"Decoder Block 3 {x.shape}, padding {self.conv_block_3.padding}")
         x:torch.Tensor = self.conv_block_2(x) # [2, 64, 21916]
-        if self.verbose: print(f"Decoder Block 3 {x.shape}")
+        if self.verbose: print(f"Decoder Block 2 {x.shape}, padding {self.conv_block_2.padding}")
         x:torch.Tensor = self.conv_block_1(x) # [2, 32, 43832]
-        if self.verbose: print(f"Decoder Block 1 {x.shape}")
+        if self.verbose: print(f"Decoder Block 1 {x.shape}, padding {self.conv_block_1.padding}")
 
         x = self.conv1(x) # [2, 2, 43832]
-        if self.verbose: print(f"Decoder Conv 1 {x.shape}")
+        if self.verbose: print(f"Decoder Conv 1 {x.shape}\n")
 
         return x
