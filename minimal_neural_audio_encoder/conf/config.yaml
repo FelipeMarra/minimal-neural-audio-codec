@@ -3,6 +3,7 @@ model:
 
 data:
   dataset:
+    games_genres: /media/felipe/32740855-6a5b-4166-b047-c8177bb37be1/snes-back/vmdb/deepseek_genres.csv
     path: /media/felipe/32740855-6a5b-4166-b047-c8177bb37be1/snes-back/vmdb/nintendo-snes-spc
 
   data_loader:

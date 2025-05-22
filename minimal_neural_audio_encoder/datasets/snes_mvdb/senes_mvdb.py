@@ -1,19 +1,28 @@
 import os
+import pathlib
+from enum import Enum
 
 import torch
 import torchaudio
 from torch.utils.data import Dataset
+
+class SplitEnum(Enum):
+    TRAIN = 'train'
+    EVAL = 'eval'
+    TEST = 'test'
 
 class SNESDataset(Dataset):
     """
         Torch Audio dataset for the SNES-MVDB dataset
 
         Args:
-            root: root path for the SNES-MVDB dataset
+            root (str): root path for the SNES-MVDB dataset
+            split (SplitEnum): SplitEnum dataset split value
     """
 
-    def __init__(self, root:str):
+    def __init__(self, root:str, split:SplitEnum):
         self.root = root
+        self.split = split
         self.soundtracks_paths = self._get_soundtracks_paths()
 
     def __len__(self):
@@ -30,9 +39,22 @@ class SNESDataset(Dataset):
         }
 
     def _get_soundtracks_paths(self):
+        split_games = []
+
+        file_folder = pathlib.Path(__file__).parent.resolve()
+        with open(f'{file_folder}/splits/{self.split.value}.txt') as f:
+            split_games = f.readlines()
+
+        split_games = [game.split('\n')[0] for game in split_games]
+
+        print(split_games)
+
         soundtracks:list[str] = []
 
         for game_folder in os.listdir(self.root):
+            if game_folder not in split_games:
+                continue
+
             game_folder_path = os.path.join(self.root, game_folder)
             soundtrack_folder_path = os.path.join(game_folder_path, 'soundtracks')
 

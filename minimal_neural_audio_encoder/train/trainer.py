@@ -47,6 +47,6 @@ class Trainer():
                 optim.zero_grad()
                 logits = self.model(audios)
                 loss:torch.Tensor = criterium(logits, audios)
-                tqdm.write('Total loss for this batch: {}'.format(loss.item()))
+                tqdm.write('Total loss for this batch: {}'.format(loss.item())) # TODO
                 loss.backward()
                 optim.step()

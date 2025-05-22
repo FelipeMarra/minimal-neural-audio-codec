@@ -3,6 +3,7 @@ from dataclasses import dataclass
 # Data
 @dataclass
 class Dataset:
+    genres_path: str
     path: str
 
 @dataclass
