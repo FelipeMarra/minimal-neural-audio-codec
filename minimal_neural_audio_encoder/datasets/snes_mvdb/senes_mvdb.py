@@ -47,8 +47,6 @@ class SNESDataset(Dataset):
 
         split_games = [game.split('\n')[0] for game in split_games]
 
-        print(split_games)
-
         soundtracks:list[str] = []
 
         for game_folder in os.listdir(self.root):
@@ -68,5 +66,5 @@ class SNESDataset(Dataset):
         _, time = audio.size()
         min_time = time - sr
         rand_starting_point = torch.randint(0, min_time, (1,)).tolist()[0]
-        #print(rand_starting_point)
+
         return audio[:, rand_starting_point : rand_starting_point+sr]

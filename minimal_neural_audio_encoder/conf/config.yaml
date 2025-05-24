@@ -13,7 +13,7 @@ data:
 train:
   epoch:
     num_epochs: 100
-    iters_per_epoch: 2000
+    iters_per_epoch: 10
 
   optim:
     lr: 1e-4

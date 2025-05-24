@@ -1,4 +1,4 @@
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 import torch
 from torch import nn
@@ -34,19 +34,30 @@ class Trainer():
         criterium = nn.MSELoss().cuda()
         optim = torch.optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
-        for epoch in range(self.num_epochs):
-            tqdm.write(f"### EPOCH {epoch+1}/{self.num_epochs}")
-            train_loader = DataLoader(self.train_dataset, self.batch_size, num_workers=self.num_workers)
-            train_loader = iter(train_loader)
 
-            for _ in tqdm(range(self.iters_per_epoch), desc=f"Epoch {epoch} Iters"):
-                batch = next(train_loader)
-                audios:torch.Tensor = batch['audio']
-                audios = audios.cuda()
+        with trange(1, self.num_epochs+1, desc="Epochs") as epoch_bar:
+            for epoch_idx in epoch_bar:
+                epoch_cumulative_loss = 0
 
-                optim.zero_grad()
-                logits = self.model(audios)
-                loss:torch.Tensor = criterium(logits, audios)
-                tqdm.write('Total loss for this batch: {}'.format(loss.item())) # TODO
-                loss.backward()
-                optim.step()
+                train_loader = DataLoader(self.train_dataset, self.batch_size, num_workers=self.num_workers)
+                train_loader = iter(train_loader)
+
+                with trange(1, self.iters_per_epoch+1, desc=f"Epoch {epoch_idx} Iters", leave=False) as batch_bar:
+                    for _ in batch_bar:
+                        batch = next(train_loader)
+                        audios:torch.Tensor = batch['audio']
+                        audios = audios.cuda()
+
+                        optim.zero_grad()
+
+                        logits = self.model(audios)
+                        loss:torch.Tensor = criterium(logits, audios)
+
+                        epoch_cumulative_loss += loss.item() 
+                        batch_bar.set_postfix({"current_loss:": loss.item()})
+
+                        loss.backward()
+                        optim.step()
+
+                epoch_loss = epoch_cumulative_loss / self.iters_per_epoch
+                epoch_bar.set_postfix({"last_epoch_loss": epoch_loss})
