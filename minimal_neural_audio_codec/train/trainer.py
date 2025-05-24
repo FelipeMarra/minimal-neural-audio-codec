@@ -2,46 +2,40 @@ from tqdm import trange
 
 import torch
 from torch import nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
-#from minimal_neural_audio_codec.config import NeuralAudioCodecConfig #TODO getting import error
+from train.train_config import TrainConfig
 
 class Trainer():
     def __init__(
             self,
             model: nn.Module,
-            train_dataset:Dataset, 
-            eval_datset:Dataset|None, 
-            test_dataset:Dataset|None,
-            cfg
+            train_dataloader:DataLoader, 
+            eval_dataloader:DataLoader|None, 
+            test_dataloader:DataLoader|None,
+            cfg: TrainConfig
         ) -> None:
 
         self.model = model
 
-        self.train_dataset = train_dataset
-        self.eval_datset = eval_datset
-        self.test_dataset = test_dataset
+        self.train_dataloader = train_dataloader
+        self.eval_dataloader = eval_dataloader
+        self.test_dataloader = test_dataloader
 
-        self.batch_size = cfg.data.data_loader.batch_size
-        self.num_workers = cfg.data.data_loader.num_workers
-        self.num_epochs = cfg.train.epoch.num_epochs
-        self.iters_per_epoch = cfg.train.epoch.iters_per_epoch
-        self.lr = cfg.train.optim.lr
-        self.weight_decay = cfg.train.optim.weight_decay
+        self.cfg = cfg
 
     def train(self):
         self.model = self.model.cuda()
         criterium = nn.MSELoss().cuda()
-        optim = torch.optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        optim = torch.optim.AdamW(self.model.parameters(), lr=self.cfg.lr, weight_decay=self.cfg.weight_decay)
 
-        with trange(1, self.num_epochs+1, desc="Epochs") as epoch_bar:
+        with trange(1, self.cfg.num_epochs+1, desc="Epochs") as epoch_bar:
             for epoch_idx in epoch_bar:
                 epoch_cumulative_loss = 0
 
-                train_loader = DataLoader(self.train_dataset, self.batch_size, num_workers=self.num_workers)
-                train_loader = iter(train_loader)
+                train_loader = iter(self.train_dataloader)
 
-                with trange(1, self.iters_per_epoch+1, desc=f"Epoch {epoch_idx} Iters", leave=False) as batch_bar:
+                with trange(1, self.cfg.iters_per_epoch+1, desc=f"Epoch {epoch_idx} Iters", leave=False) as batch_bar:
                     for _ in batch_bar:
                         batch = next(train_loader)
                         audios:torch.Tensor = batch['audio']
@@ -58,7 +52,7 @@ class Trainer():
                         loss.backward()
                         optim.step()
 
-                epoch_loss = epoch_cumulative_loss / self.iters_per_epoch
+                epoch_loss = epoch_cumulative_loss / self.cfg.iters_per_epoch
                 epoch_bar.set_postfix({"last_epoch_loss": epoch_loss})
 
     def eval(self):

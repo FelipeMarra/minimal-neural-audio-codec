@@ -1,10 +1,10 @@
 import hydra
 from hydra.core.config_store import ConfigStore
 from config import NeuralAudioCodecConfig
-
-from datasets import SNESDataset, SplitEnum
+from datasets import get_dataloader 
+from datasets.datasets_config import SplitEnum
 from nn_modules import NeuralAudioCodec
-from train import Trainer
+from train.trainer import Trainer
 
 # Config store so that Hydra will load our config at minimal-neural-audio-encoder/conf/ as a NeuralAudioCodecConfig class
 config_store = ConfigStore.instance()
@@ -12,12 +12,13 @@ config_store.store(name="neural_audio_codec_config", node=NeuralAudioCodecConfig
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.1")
 def main(cfg: NeuralAudioCodecConfig):
+
     trainer = Trainer(
         model = NeuralAudioCodec(verbose=cfg.model.verbose), 
-        train_dataset = SNESDataset(cfg.data.dataset.path, SplitEnum.TRAIN), 
-        eval_datset = SNESDataset(cfg.data.dataset.path, SplitEnum.EVAL), 
-        test_dataset = SNESDataset(cfg.data.dataset.path, SplitEnum.TEST), 
-        cfg=cfg
+        train_dataloader = get_dataloader(cfg.data, SplitEnum.TRAIN), 
+        eval_dataloader = get_dataloader(cfg.data, SplitEnum.EVAL), 
+        test_dataloader = get_dataloader(cfg.data, SplitEnum.TEST), 
+        cfg=cfg.train
     )
 
     trainer.train()

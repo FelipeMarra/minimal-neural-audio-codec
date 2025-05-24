@@ -1,15 +1,11 @@
 import os
 import pathlib
-from enum import Enum
 
 import torch
 import torchaudio
 from torch.utils.data import Dataset
 
-class SplitEnum(Enum):
-    TRAIN = 'train'
-    EVAL = 'eval'
-    TEST = 'test'
+from datasets.datasets_config import SplitEnum
 
 class SNESDataset(Dataset):
     """
