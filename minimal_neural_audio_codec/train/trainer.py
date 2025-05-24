@@ -1,4 +1,4 @@
-from tqdm import trange
+from tqdm import tqdm, trange
 
 import torch
 from torch import nn
@@ -11,8 +11,8 @@ class Trainer():
             self,
             model: nn.Module,
             train_dataloader:DataLoader, 
-            eval_dataloader:DataLoader|None, 
-            test_dataloader:DataLoader|None,
+            eval_dataloader:DataLoader, 
+            test_dataloader:DataLoader,
             cfg: TrainConfig
         ) -> None:
 
@@ -52,8 +52,29 @@ class Trainer():
                         loss.backward()
                         optim.step()
 
-                epoch_loss = epoch_cumulative_loss / self.cfg.iters_per_epoch
-                epoch_bar.set_postfix({"last_epoch_loss": epoch_loss})
+                epoch_train_loss = epoch_cumulative_loss / self.cfg.iters_per_epoch
+                epoch_bar.set_postfix({"last_epoch_loss": epoch_train_loss})
 
-    def eval(self):
-        pass
+                epoch_eval_loss = self.eval()
+
+                tqdm.write(f"Epoch {epoch_idx} train loss: {epoch_train_loss}; eval loss {epoch_eval_loss}")
+
+    def eval(self) -> float:
+        cumulative_loss = 0
+
+        with torch.no_grad():
+            eval_loader = iter(self.eval_dataloader)
+            criterium = nn.MSELoss().cuda()
+
+            with trange(1, self.cfg.eval_iters+1, desc="Eval", leave=False) as eval_bar:
+                for _ in eval_bar:
+                    batch = next(eval_loader)
+                    audios:torch.Tensor = batch['audio']
+                    audios = audios.cuda()
+
+                    logits = self.model(audios)
+                    loss:torch.Tensor = criterium(logits, audios)
+                    cumulative_loss += loss.item()
+
+        eval_loos = cumulative_loss / self.cfg.eval_iters
+        return eval_loos
