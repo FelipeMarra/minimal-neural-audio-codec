@@ -1,10 +1,10 @@
-from tqdm import tqdm, trange
+from tqdm import trange
 
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
-#from minimal_neural_audio_encoder.config import NeuralAudioCodecConfig TODO getting import error
+#from minimal_neural_audio_codec.config import NeuralAudioCodecConfig #TODO getting import error
 
 class Trainer():
     def __init__(
@@ -34,7 +34,6 @@ class Trainer():
         criterium = nn.MSELoss().cuda()
         optim = torch.optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
-
         with trange(1, self.num_epochs+1, desc="Epochs") as epoch_bar:
             for epoch_idx in epoch_bar:
                 epoch_cumulative_loss = 0
@@ -61,3 +60,6 @@ class Trainer():
 
                 epoch_loss = epoch_cumulative_loss / self.iters_per_epoch
                 epoch_bar.set_postfix({"last_epoch_loss": epoch_loss})
+
+    def eval(self):
+        pass
