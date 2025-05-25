@@ -6,6 +6,7 @@ from tqdm import tqdm, trange
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard.writer import SummaryWriter
 
 from train.train_config import TrainConfig
 
@@ -27,13 +28,13 @@ class Trainer():
 
         self.cfg = cfg
 
-    def save_model(self, current_epoch:int):
-        state_dict = self.model.state_dict()
-        epoch = current_epoch -1 # -1 because on the training loop the epoch_idx counts from 1
+        self.writer = SummaryWriter(cfg.tensorboard_path)
 
+    def save_model(self, current_epoch:int, optim:torch.optim.Optimizer):
         save_dict = {
-            'epoch': epoch,
-            'state_dict': state_dict
+            'epoch': current_epoch -1, # -1 because on the training loop the epoch_idx counts from 1
+            'optim_state': self.model.state_dict(),
+            'model_state': optim.state_dict()
         }
 
         save_folder = Path(self.cfg.save_model_path).parent.resolve()
@@ -58,7 +59,7 @@ class Trainer():
                 train_loader = iter(self.train_dataloader)
 
                 with trange(1, self.cfg.iters_per_epoch+1, desc=f"Epoch {epoch_idx} Iters", leave=False) as batch_bar:
-                    for _ in batch_bar:
+                    for batch_idx in batch_bar:
                         batch = next(train_loader)
                         audios:torch.Tensor = batch['audio']
                         audios = audios.cuda()
@@ -67,24 +68,29 @@ class Trainer():
 
                         logits = self.model(audios)
                         loss:torch.Tensor = criterium(logits, audios)
+                        loss_item = loss.item()
 
-                        epoch_cumulative_loss += loss.item() 
-                        batch_bar.set_postfix({"current_loss:": loss.item()})
+                        epoch_cumulative_loss += loss_item
+                        batch_bar.set_postfix({"current_loss:": loss_item})
+                        global_step = batch_idx + self.cfg.iters_per_epoch*(epoch_idx-1)
+                        self.writer.add_scalar('Train/Batch Loss', loss_item, global_step)
 
                         loss.backward()
                         optim.step()
 
                 epoch_train_loss = epoch_cumulative_loss / self.cfg.iters_per_epoch
                 epoch_bar.set_postfix({"last_epoch_loss": epoch_train_loss})
+                self.writer.add_scalar('Train/Epoch Loss', loss_item, epoch_idx)
 
                 epoch_eval_loss = self.eval()
                 tqdm.write(f"Epoch {epoch_idx} train loss: {epoch_train_loss}; eval loss {epoch_eval_loss}")
+                self.writer.add_scalar('Eval/Loss', loss_item, epoch_idx)
 
                 if epoch_eval_loss < last_eval_loss:
                     last_eval_loss = epoch_eval_loss
-                    save_path = self.save_model(epoch_idx)
+                    save_path = self.save_model(epoch_idx, optim)
                     tqdm.write(f"New best model saved at {save_path}")
-
+        self.writer.flush()
 
     def eval(self) -> float:
         self.model.eval()

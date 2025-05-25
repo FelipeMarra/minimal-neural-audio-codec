@@ -8,3 +8,4 @@ class TrainConfig:
     lr: float
     weight_decay: float
     save_model_path: str
+    tensorboard_path: str

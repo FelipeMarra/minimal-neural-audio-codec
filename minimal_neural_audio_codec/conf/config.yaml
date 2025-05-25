@@ -17,3 +17,4 @@ train:
   lr: 1e-4
   weight_decay: 1e-2
   save_model_path: './checkpoints/best_model.pth'
+  tensorboard_path: './tensorboard'
