@@ -27,15 +27,14 @@ if __name__ == "__main__":
     main()
 
 # %%
-#TODO Eval Loop
-
 #TODO Tensorboard
-
-#TODO Checkpoints
 
 #TODO Generate examples
 
 #TODO Test Loop
+
+#TODO Checkpoints
+#       |_ add continue from previous checkpoint
 
 #TODO
 # We further split the input into chunks of 1 seconds, with an overlap of 10 ms to avoid clicks, and normalize each

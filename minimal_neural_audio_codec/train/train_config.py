@@ -7,3 +7,4 @@ class TrainConfig:
     eval_iters:int
     lr: float
     weight_decay: float
+    save_model_path: str

@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 from tqdm import tqdm, trange
 
 import torch
@@ -24,11 +27,30 @@ class Trainer():
 
         self.cfg = cfg
 
+    def save_model(self, current_epoch:int):
+        state_dict = self.model.state_dict()
+        epoch = current_epoch -1 # -1 because on the training loop the epoch_idx counts from 1
+
+        save_dict = {
+            'epoch': epoch,
+            'state_dict': state_dict
+        }
+
+        save_folder = Path(self.cfg.save_model_path).parent.resolve()
+        if not os.path.exists(save_folder):
+            os.makedirs(save_folder)
+
+        torch.save(save_dict, self.cfg.save_model_path)
+
+        return save_folder.absolute()
+
     def train(self):
+        self.model.train()
         self.model = self.model.cuda()
         criterium = nn.MSELoss().cuda()
         optim = torch.optim.AdamW(self.model.parameters(), lr=self.cfg.lr, weight_decay=self.cfg.weight_decay)
 
+        last_eval_loss = float('inf')
         with trange(1, self.cfg.num_epochs+1, desc="Epochs") as epoch_bar:
             for epoch_idx in epoch_bar:
                 epoch_cumulative_loss = 0
@@ -56,12 +78,18 @@ class Trainer():
                 epoch_bar.set_postfix({"last_epoch_loss": epoch_train_loss})
 
                 epoch_eval_loss = self.eval()
-
                 tqdm.write(f"Epoch {epoch_idx} train loss: {epoch_train_loss}; eval loss {epoch_eval_loss}")
 
-    def eval(self) -> float:
-        cumulative_loss = 0
+                if epoch_eval_loss < last_eval_loss:
+                    last_eval_loss = epoch_eval_loss
+                    save_path = self.save_model(epoch_idx)
+                    tqdm.write(f"New best model saved at {save_path}")
 
+
+    def eval(self) -> float:
+        self.model.eval()
+
+        cumulative_loss = 0
         with torch.no_grad():
             eval_loader = iter(self.eval_dataloader)
             criterium = nn.MSELoss().cuda()
@@ -75,6 +103,8 @@ class Trainer():
                     logits = self.model(audios)
                     loss:torch.Tensor = criterium(logits, audios)
                     cumulative_loss += loss.item()
+
+        self.model.train()
 
         eval_loos = cumulative_loss / self.cfg.eval_iters
         return eval_loos
