@@ -13,6 +13,10 @@ config_store.store(name="neural_audio_codec_config", node=NeuralAudioCodecConfig
 @hydra.main(config_path="conf", config_name="config", version_base="1.1")
 def main(cfg: NeuralAudioCodecConfig):
 
+    # print(len(get_dataloader(cfg.data, SplitEnum.TRAIN)))
+    # print(len(get_dataloader(cfg.data, SplitEnum.EVAL)))
+    # print(len(get_dataloader(cfg.data, SplitEnum.TEST)))
+
     trainer = Trainer( 
         model = NeuralAudioCodec(verbose=cfg.model.verbose), 
         train_dataloader = get_dataloader(cfg.data, SplitEnum.TRAIN), 

@@ -3,17 +3,18 @@ model:
 
 data:
   dataset:
-    games_genres: /media/felipe/32740855-6a5b-4166-b047-c8177bb37be1/snes-back/vmdb/deepseek_genres.csv
-    path: /media/felipe/32740855-6a5b-4166-b047-c8177bb37be1/snes-back/vmdb/nintendo-snes-spc
+    games_genres: /app/dataset/deepseek_genres.csv
+    path: /app/dataset/nintendo-snes-spc
 
   data_loader:
-    batch_size: 2
-    num_workers: 2
+    batch_size: 64
+    num_workers: 4
 
 train:
   num_epochs: 100
-  iters_per_epoch: 10
-  eval_iters: 10
+  iters_per_epoch: 450
+  eval_iters: 50
+  test_iters: 50
   lr: 1e-4
   weight_decay: 1e-2
   save_model_path: './checkpoints/best_model.pth'
