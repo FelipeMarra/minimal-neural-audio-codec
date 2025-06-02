@@ -31,9 +31,9 @@ if __name__ == "__main__":
     main()
 
 # %%
-#TODO Tensorboard
-
+# %%
 #TODO Generate examples
+#       |_ log generated audios on tensorboard
 
 #TODO Test Loop
 
